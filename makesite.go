@@ -11,10 +11,13 @@ package main
 import (
 	"flag"
 	"fmt"
+	"html/template"
 	"io/ioutil"
 	"log"
 	"strings"
+
 	// "string"
+	"os"
 )
 
 // Storing Data
@@ -69,6 +72,56 @@ func runFile(fileFlag, directory string) {
 
 	var data string = readFile(directory + fileFlag)
 	renderTemplate("template.tmpl", data, fileName)
+}
+
+func runDir(directory, output string) {
+
+	if directory[len(directory)-1] != "/"[0] {
+		directory += "/"
+	}
+
+	files, err := ioutil.ReadDir(directory)
+
+	if err != nil {
+		panic(err)
+	}
+
+	for _, file := range files {
+
+		if file.IsDir() == false {
+			runFile(file.Name(), directory)
+		} else {
+			runDir(directory+"/"+file.Name(), output)
+		}
+	}
+}
+
+func renderTemplate(tPath, textData, fileName string) {
+	paths := []string{
+		tPath,
+	}
+
+	f, err := os.Create("templates/" + fileName)
+	if err != nil {
+		panic(err)
+	}
+
+	_, err := template.New(tPath).ParseFiles(paths...)
+	if err != nil {
+		panic(err)
+	}
+
+	// originName := fileName[0:strings.Index(fileName, ".")]
+
+	// // txtTranslated := translateText(textData)
+
+	// err = t.Execute(f, pageData{txtTranslated, originName})
+	// if err != nil {
+	// 	panic(err)
+	// }
+
+	f.Close()
+
 }
 
 func readFile(file string) string {
