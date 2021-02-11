@@ -145,6 +145,7 @@ func writeFile(file string, content string) {
 }
 
 func saveFile() {
+	// saves data into a directory
 	var filename string
 	var dir string
 
