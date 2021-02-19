@@ -1,42 +1,23 @@
-// package main
-
-// import "fmt"
-
-// func main() {
-// 	fmt.Println("Hello, world!")
-// }
-
 package main
 
 import (
 	"flag"
-	"fmt"
 	"html/template"
 	"io/ioutil"
-	"log"
+	"os"
 	"strings"
 
-	// "string"
-	"os"
+	"github.com/bregydoc/gtranslate"
+	"golang.org/x/text/language"
+	"gopkg.in/russross/blackfriday.v2"
 )
 
-// Storing Data
-type entry struct {
-	Name string
-	Done bool
-}
-
-type ToDo struct {
-	User string
-	List []entry
+type pageData struct {
+	Content string
+	Title   string
 }
 
 func main() {
-	// t := template.Must(template.New("template.tmpl").ParseFiles("new.html"))
-	// err = t.Execute(os.Stdout, ToDo.User)
-	// if err != nil {
-	// 	panic(err)
-	// }
 
 	fileFlag := flag.String("file", "first-post.txt", "define input text")
 	dirFlag := flag.String("directory", "none", "generates all .txt files in directory")
@@ -44,10 +25,39 @@ func main() {
 	flag.Parse()
 
 	if *dirFlag == "none" {
-		runFile(*fileFlag, "txt_dir/")
+		runFile(*fileFlag, "text_dir/")
 	} else {
 		runDir(*dirFlag, *outputDirFlag)
 	}
+
+}
+
+func renderTemplate(tPath, textData, fileName string) {
+	paths := []string{
+		tPath,
+	}
+
+	f, err := os.Create("templates/" + fileName)
+	if err != nil {
+		panic(err)
+	}
+
+	t, err := template.New(tPath).ParseFiles(paths...)
+	if err != nil {
+		panic(err)
+	}
+
+	originName := fileName[0:strings.Index(fileName, ".")]
+
+	txtTranslated := translateText(textData)
+
+	err = t.Execute(f, pageData{txtTranslated, originName})
+	if err != nil {
+		panic(err)
+	}
+
+	f.Close()
+
 }
 
 func runFile(fileFlag, directory string) {
@@ -96,83 +106,27 @@ func runDir(directory, output string) {
 	}
 }
 
-func renderTemplate(tPath, textData, fileName string) {
-	paths := []string{
-		tPath,
-	}
+func translateText(txtData string) string {
 
-	f, err := os.Create("templates/" + fileName)
+	translated, err := gtranslate.Translate(txtData, language.English, language.Spanish)
 	if err != nil {
 		panic(err)
 	}
 
-	_, err := template.New(tPath).ParseFiles(paths...)
-	if err != nil {
-		panic(err)
-	}
-
-	// originName := fileName[0:strings.Index(fileName, ".")]
-
-	// // txtTranslated := translateText(textData)
-
-	// err = t.Execute(f, pageData{txtTranslated, originName})
-	// if err != nil {
-	// 	panic(err)
-	// }
-
-	f.Close()
-
+	// fmt.Printf("en: %s | ja: %s \n", txtData, translated)
+	// en: Hello World | ja: こんにちは世界
+	return string(translated)
 }
 
-func readFile(file string) string {
-	fileContents, err := ioutil.ReadFile("first-post.txt")
+func readFile(fileName string) string {
+	fileContents, err := ioutil.ReadFile(fileName)
 	if err != nil {
-		// A common use of `panic` is to abort if a function returns an error
-		// value that we don’t know how to (or want to) handle. This example
-		// panics if we get an unexpected error when creating a new file.
 		panic(err)
 	}
-	fmt.Print(string(fileContents))
+
+	// fmt.Println(string(fileContents))
 	return string(fileContents)
 }
-
-func writeFile(file string, content string) {
-	bytesToWrite := []byte("hello\ngo\n")
-	err := ioutil.WriteFile("new-file.txt", bytesToWrite, 0644)
-	if err != nil {
-		panic(err)
-	}
-}
-
-func saveFile() {
-	// saves data into a directory
-	var filename string
-	var dir string
-
-	flag.StringVar(&filename, "file", "", "File name")
-	flag.StringVar(&dir, "dir", "", "Directory name")
-	flag.Parse()
-
-	files, err := ioutil.ReadDir(dir)
-	if err != nil {
-		log.Fatal(err)
-	}
-	for _, f := range files {
-		if f.Name()[len(f.Name())-4:] == ".txt" {
-			content := readFile(dir + "/" + f.Name())
-			writeFile(f.Name(), content)
-		}
-	}
-}
-
-// func main() {
-// 	// Creates new template
-// 	t := template.Must(template.New("template.tmpl").ParseFiles("template.tmpl"))
-// 	err = t.Execute(os.Stdout, todos)
-// 	if err != nil {
-// 		panic(err)
-// 	}
-// }
 
 // Build Program
 // $ go build
@@ -180,6 +134,6 @@ func saveFile() {
 // Run latest Build
 // ./makesite or $ ./(name of go file)
 
-// go build -o main
+// go build -o makesite.go
 // ./main
-// go run main.go
+// go run makesite.go
